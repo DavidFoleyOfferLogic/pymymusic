@@ -1,0 +1,48 @@
+;; supported options
+;;
+;; indent_style: whether to use tabs or spaces
+;; indent_size: the number of columns used to indent or the width of soft tabs
+;; tab_width: the number of columns used to represent a tab character
+;; end_of_line: The character which represents a line break. Options include lf, cr, or crlf
+;; max_line_length: Whether to forces hard line wrapping after a specified line length
+;; charset: the character set to use for saving files
+;; trim_trailing_whitespace: whether to remove trailing whitespace at the end of lines
+;; insert_final_newline: whether to add a newline at the end of a file on save
+;; root: Stops .editorconfig files search on current file if set to true.
+
+root = true
+
+; applies to all files
+[*]
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+; applies only to PHP files
+[**.php]
+indent_style = space
+indent_size = 4
+
+; applies only to Makefiles
+[Makefile]
+indent_style = tab
+
+; applies only to JSON files
+[*.json]
+indent_size = 2
+
+; applies only to Markdown files
+[*.md]
+trim_trailing_whitespace = false
+
+; applies only to Python files
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+; applies only to javascript files
+[*.js]
+indent_style = space
+indent_size = 2

@@ -1,0 +1,489 @@
+#    -*- mode: org -*-
+
+
+Archived entries from file /home/ailbe/projects/mymusic/todo.org
+
+
+* Archived Tasks
+
+** DONE Prompt user for download path
+CLOSED: [2017-09-23 Sa 17:32]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 17:32
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-09-23 Sa 17:32] \\
+  User is prompted for the download path when an account is created
+- State "TODO"       from              [2017-09-23 Sa 17:28]
+:END:
+I added a default path to user creation because creation was failing without it. In
+reality I should prompt the user and supply a default.
+
+** DONE Add create tables on first run
+CLOSED: [2017-09-23 Sa 17:32]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 17:32
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-09-23 Sa 17:32]
+- State "TODO"       from              [2017-09-23 Sa 17:28]
+:END:
+
+** DONE Add support for downloading liked youtube music videos
+CLOSED: [2017-09-23 Sa 17:32]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 17:33
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "IN-PROGRESS" [2017-09-23 Sa 17:32]
+- State "IN-PROGRESS" from "TODO"       [2017-09-23 Sa 17:14]
+:END:
+
+*** How to handle youtube downloads
+I'm not sure how to handle these. It might actually be better to leave these as experimental
+or unsupported for now because I have no metadata here but I have the exact videos that the user
+wants to download. I'm not really sure what to do here. I think I'm just going to hack in some logic
+that allows these without metadata for now because it's obvious these are what the user wants to download
+but I'm going to mark as experimental.
+
+
+I've had some thoughts but they're all terrible. The issue here is that I need metadata for these because
+there's no real song metadata because it's a video. I could try parsing that kind of information out
+title, channel, etc... but that's way more work than it's worth for this, especially right now.
+I think it's best to treat this as a special case for now because honestly if I don't then I'm just going
+to abandon this because the alternative is digging for unreliable metadata because all we have to search
+with is a video title... in many cases it probably doesn't even match the song name so I'd at least have to
+do some cleanup there and it's just not worth it. Maybe on my next flight or train ride I'll
+handle this.
+*** Implementation plan
+What's the simplest way of supporting this?
+I'll need to track the youtube video id so this is recognized as a song. I'll also need to be able to
+track this as a downloaded song so the song model will need to change because there's no metadata.
+Actually, maybe there's another way. I could download the youtube video and attempt to tag it based on the mp3
+content. That actually might make more sense since that would be useful for the other providers since I can verify
+that the song that was downloaded is what we expected; obviously this wouldn't be the only metric
+but if they do match then I can be far more certain that the correct song was downloaded. Damnit, I have to do it this
+way because it really is the best way and offers the most to the entire application, meaning even if the
+youtube video downloads still suck then at least I still made an improvement to the program. If it doesn't work
+then that's it's likely an indicator that I shouldn't support youtube videos or that the support should be isolated.
+
+So I've been researching how to actually implement this and it's not very straighforward.
+I was stupidly optimistic and believed some python library would exists that I could pass these filenames
+into and it would return metadata and/or music tags for that song. From my research, that doesn't exist.
+Most of these tagging libs and programs attempt to use existing tags and directory structure as the main heuristics to
+identify the song and then add on from there. The songs I'm downloading from youtube have on tags and are completely organized
+in terms of directory structure, they're all dumped into a single directory. But I use clementine as my primary music player
+and tried it's autotagging feature and it worked correctly. I even renamed a song that I confirmed to have zero tags to
+xyz.mp3 and it still correctly identified the song. So obviously this capability must exists... how
+does clementine do it? Turns out there's some other heuristics clementine uses to determine the song, of which
+two are useful to me and of those one is amazingly powerful.
+
+The first heuristic is filename. If you don't have a directory structure but your songs are named with metadata in the
+filename then it's possible to derive the song from that so you can get your metadata.
+The second heuristic is acoustics. Basically acoustic matching tries to identify the song by the song itself. This is crazy
+and extremely powerful. With no metadata, without structure, using only garbage names you can correctly get
+the song metadata.
+
+Both of these can be useful to me since the filename should ideally be in the song title, since I'm downloading from youtube.
+There's a few libraries to help using with acoustic matching that I'll list here but that appears to me to be the last resort
+option. I think using a combination of these I should be able to identify most of my songs.
+
+https://beets.readthedocs.io/en/v1.4.5/plugins/fromfilename.html
+https://beets.readthedocs.io/en/v1.4.5/plugins/acousticbrainz.html
+https://www.discogs.com/
+https://www.beatport.com/
+https://zenu.wordpress.com/2011/05/28/audio-fingerprinting-and-matching-using-acoustid-chromaprint-on-windows-with-python/
+https://github.com/beetbox/pyacoustid
+https://acoustid.org/
+https://acoustid.org/webservice
+
+Ok so acoustid works fine. Here's a snippet showing the basics of how to use it after
+installing the pyacoustid library
+
+#+BEGIN_SRC python
+
+# make sure to pip install pyacoustid library first
+# also create an application on https://acoustid.org/my-applications and copy your apikey here
+
+import acoustid
+apikey = YOUR_KEY
+
+path = '/home/ailbe/tmusic/xyz.mp3'
+
+for score, recording_id, title, artist in acoustid.match(apikey, path):
+    print(f'score: {score}, title: {title}, artist: {artist}')
+
+#+END_SRC
+
+
+If you're interested, pyacoustid is from the same people who brought us beets, same github org.
+I imagine it's what they're using to power beets but I haven't read the code.
+This is truly some amazing stuff as the acoustid project is completely crowd generated and they offer
+both a webservice and monthly database dumps, you could download the db and put your own service in front
+of it if you wanted. It's also what powers a lot of applications major auto tagging facility, along with
+musicbrainz, discogs, etc... for the cases where the user has an already organized library or existing tags.
+For example:
+
+Picard
+Beets
+Metatogger
+MusicBee
+VLC
+
+** DONE Add ability for user login to google accounts
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 19:33
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-08-01 Tue 20:13] \\
+  This actually ended up being pretty simple to implement. A combination of cherrypy and
+  the python webbrowser module made this pretty trivial. I'd never heard of the webbrowser module
+  before but it let's you open a url in the user's browser, among other things.
+:END:
+I need to add the ability for a user to login and to store their access token or whatever I get back from
+google in exchange to access the api through them. I need to use oauth token for this so I think the best approach
+here will be to output the auth url to the user, redirect to a localhost url and then store the token.
+This is assuming that I'm running this as a cron script. If this is a webapp then it's a little different.
+
+** DONE Create db tables
+CLOSED: [2017-09-23 Sa 19:29]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 19:33
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "IN-PROGRESS" [2017-09-23 Sa 19:29] \\
+  First version is done. Kinda hacky but flexible enough to support
+  youtube, spotify, and gmp so I'm calling this finished.
+- State "IN-PROGRESS" from "TODO"       [2017-08-01 Tue 20:14]
+:END:
+I'm not sure how to start with this one but I actually think something like sqlite will be plenty
+to start with. For starts, I'll need a table to store the user's access creds and songs that have already
+been downloaded so we don't keep downloading songs. Maybe a table with the download songs would
+be useful, too.
+
+[2017-08-01 Tue]
+This is 'finished' in the sense that the tables work for an initial version but I
+haven't tested everything yet or added support for spotify or last.fm and I plan on supporting
+at least spotify so I can't mark this as complete yet but it's definitely close.
+
+** DONE Support downloading songs
+CLOSED: [2017-09-23 Sa 19:32]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 19:33
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "IN-PROGRESS" [2017-09-23 Sa 19:32]
+- State "IN-PROGRESS" from "TODO"       [2017-09-17 So 22:10]
+:END:
+I need to support downloading songs. This should be down with youtube and I have another card for that but
+I'm not finished looking at this yet.
+*** DONE Add gmusicapi download support
+CLOSED: [2017-09-23 Sa 19:30]
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-09-23 Sa 19:30]
+:END:
+I'm still not sure that I want to go this route but I can't ignore that
+this is an option. Gmusicapi offers the ability do download a user's songs.
+*** DONE Add support to download songs with youtube
+CLOSED: [2017-09-23 Sa 19:32]
+:LOGBOOK:
+- State "DONE"       from "IN-PROGRESS" [2017-09-23 Sa 19:32]
+- State "IN-PROGRESS" from "TODO"       [2017-09-17 So 22:10]
+:END:
+The primary source of music for downloads is definitely going to be youtube (there's also
+deezer and some other unofficial 'apis' but I'm reluctant to pursue that path). I think youtube
+can be used to find most songs but there's a lot of noise there, too. With a little filtering
+I think that I will be able to download pretty good matches of songs. Any song metadata should
+be pulled from a single source/api so we don't have any ambiguity in metadata.
+
+** DONE Store downloaded songs on filesystem, s3, etc..
+CLOSED: [2017-09-23 Sa 19:33]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 19:33
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-09-23 Sa 19:33] \\
+  User songs downloaded on filesystem
+:END:
+There's no reason to redownload songs for each user. I could store the songs and just serve those instead
+of hitting youtube or whatever each time someone wants to download something.
+
+** DONE Support syncing with a user's library for a desktop install
+CLOSED: [2017-09-23 Sa 19:33]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 19:34
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-09-23 Sa 19:33]
+:END:
+I need to support keeping track of which songs a user has downloaded already and download
+any new songs.
+
+To do this, I need to:
+
+1. Track where a user's local downloads are stored
+2. Check for the existence of a user's local songs in that directory
+3. Download any missing songs
+
+** DONE Add support for tracking and syncing a user's favorite songs
+CLOSED: [2017-09-23 Sa 19:33]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 19:34
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-09-23 Sa 19:33]
+:END:
+I need to track and keep in sync a user's favorite songs. One simple approach here would be
+to just join the user against the user songs and that would give me all of a user's favorite songs across
+all music services.
+
+A virtual table or something like that called user_library or something like that initially sounds very useful
+to me but I need to reflect on that a little while longer.
+
+** DONE Update usersongs with a user's latest favorited songs
+CLOSED: [2017-09-23 Sa 19:33]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 19:34
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-09-23 Sa 19:33]
+:END:
+Whenever I sync a user with a connected service I need to add an entry to usersongs.
+
+** DONE Map out song model
+CLOSED: [2017-09-23 Sa 19:33]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 19:34
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-09-23 Sa 19:33]
+:END:
+The important piece here is what metadata we're tracking about each song. Should we lump the artist, album, etc..
+all in the song table or should we normalize that data with additional tables? Where are we pulling this song
+metadata from? I woulnd't like the idea of using data from each service because I would like it to come from
+one place so it's consistent but who should that be?
+
+** DONE Fix double mp3 extensions on some files
+CLOSED: [2017-09-20 Mi 15:08]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 19:34
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2017-09-20 Mi 15:08] \\
+  youtube-dl adds the .mp3 extension but I was adding that as part of the download_path hence
+  the double .mp3 extension
+:END:
+Some downloaded mp3 have .mp3.mp3 as the extension and that causes them to always be downloaded.
+
+** DONE Add support for downloading liked youtube music videos
+CLOSED: [2017-09-23 Sa 19:29]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 19:34
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "IN-PROGRESS" [2017-09-23 Sa 19:29]
+- State "IN-PROGRESS" from "TODO"       [2017-09-23 Sa 17:14]
+:END:
+
+*** How to handle youtube downloads
+I'm not sure how to handle these. It might actually be better to leave these as experimental
+or unsupported for now because I have no metadata here but I have the exact videos that the user
+wants to download. I'm not really sure what to do here. I think I'm just going to hack in some logic
+that allows these without metadata for now because it's obvious these are what the user wants to download
+but I'm going to mark as experimental.
+
+
+I've had some thoughts but they're all terrible. The issue here is that I need metadata for these because
+there's no real song metadata because it's a video. I could try parsing that kind of information out
+title, channel, etc... but that's way more work than it's worth for this, especially right now.
+I think it's best to treat this as a special case for now because honestly if I don't then I'm just going
+to abandon this because the alternative is digging for unreliable metadata because all we have to search
+with is a video title... in many cases it probably doesn't even match the song name so I'd at least have to
+do some cleanup there and it's just not worth it. Maybe on my next flight or train ride I'll
+handle this.
+*** Implementation plan
+What's the simplest way of supporting this?
+I'll need to track the youtube video id so this is recognized as a song. I'll also need to be able to
+track this as a downloaded song so the song model will need to change because there's no metadata.
+Actually, maybe there's another way. I could download the youtube video and attempt to tag it based on the mp3
+content. That actually might make more sense since that would be useful for the other providers since I can verify
+that the song that was downloaded is what we expected; obviously this wouldn't be the only metric
+but if they do match then I can be far more certain that the correct song was downloaded. Damnit, I have to do it this
+way because it really is the best way and offers the most to the entire application, meaning even if the
+youtube video downloads still suck then at least I still made an improvement to the program. If it doesn't work
+then that's it's likely an indicator that I shouldn't support youtube videos or that the support should be isolated.
+
+So I've been researching how to actually implement this and it's not very straighforward.
+I was stupidly optimistic and believed some python library would exists that I could pass these filenames
+into and it would return metadata and/or music tags for that song. From my research, that doesn't exist.
+Most of these tagging libs and programs attempt to use existing tags and directory structure as the main heuristics to
+identify the song and then add on from there. The songs I'm downloading from youtube have on tags and are completely organized
+in terms of directory structure, they're all dumped into a single directory. But I use clementine as my primary music player
+and tried it's autotagging feature and it worked correctly. I even renamed a song that I confirmed to have zero tags to
+xyz.mp3 and it still correctly identified the song. So obviously this capability must exists... how
+does clementine do it? Turns out there's some other heuristics clementine uses to determine the song, of which
+two are useful to me and of those one is amazingly powerful.
+
+The first heuristic is filename. If you don't have a directory structure but your songs are named with metadata in the
+filename then it's possible to derive the song from that so you can get your metadata.
+The second heuristic is acoustics. Basically acoustic matching tries to identify the song by the song itself. This is crazy
+and extremely powerful. With no metadata, without structure, using only garbage names you can correctly get
+the song metadata.
+
+Both of these can be useful to me since the filename should ideally be in the song title, since I'm downloading from youtube.
+There's a few libraries to help using with acoustic matching that I'll list here but that appears to me to be the last resort
+option. I think using a combination of these I should be able to identify most of my songs.
+
+https://beets.readthedocs.io/en/v1.4.5/plugins/fromfilename.html
+https://beets.readthedocs.io/en/v1.4.5/plugins/acousticbrainz.html
+https://www.discogs.com/
+https://www.beatport.com/
+https://zenu.wordpress.com/2011/05/28/audio-fingerprinting-and-matching-using-acoustid-chromaprint-on-windows-with-python/
+https://github.com/beetbox/pyacoustid
+https://acoustid.org/
+https://acoustid.org/webservice
+
+Ok so acoustid works fine. Here's a snippet showing the basics of how to use it after
+installing the pyacoustid library
+
+#+BEGIN_SRC python
+
+# make sure to pip install pyacoustid library first
+# also create an application on https://acoustid.org/my-applications and copy your apikey here
+
+import acoustid
+apikey = YOUR_KEY
+
+path = '/home/ailbe/tmusic/xyz.mp3'
+
+for score, recording_id, title, artist in acoustid.match(apikey, path):
+    print(f'score: {score}, title: {title}, artist: {artist}')
+
+#+END_SRC
+
+
+If you're interested, pyacoustid is from the same people who brought us beets, same github org.
+I imagine it's what they're using to power beets but I haven't read the code.
+This is truly some amazing stuff as the acoustid project is completely crowd generated and they offer
+both a webservice and monthly database dumps, you could download the db and put your own service in front
+of it if you wanted. It's also what powers a lot of applications major auto tagging facility, along with
+musicbrainz, discogs, etc... for the cases where the user has an already organized library or existing tags.
+For example:
+
+Picard
+Beets
+Metatogger
+MusicBee
+VLC
+
+** DONE Add create tables on first run
+CLOSED: [2017-09-23 Sa 21:18]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 21:18
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-09-23 Sa 21:18] \\
+  Added peewee create safe tables call in main
+- State "TODO"       from              [2017-09-23 Sa 21:18]
+:END:
+
+** DONE Should album name be part of the music download path
+CLOSED: [2017-09-23 Sa 21:20]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 21:20
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2017-09-23 Sa 21:20]
+:END:
+
+I'm going no on this.
+
+** DONE Warn user if they attempt to link with an already linked account
+CLOSED: [2017-09-23 Sa 22:34]
+:PROPERTIES:
+:ARCHIVE_TIME: 2017-09-23 Sa 22:34
+:ARCHIVE_FILE: ~/projects/mymusic/todo.org
+:ARCHIVE_OLPATH: Python music downloader
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: DONE
+:ARCHIVE_ITAGS: pymusicdl
+:END:
+:LOGBOOK:
+- State "DONE"       from "IN-PROGRESS" [2017-09-23 Sa 22:34]
+- State "IN-PROGRESS" from "TODO"       [2017-09-23 Sa 21:11]
+:END:

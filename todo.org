@@ -1,0 +1,180 @@
+* Python music downloader                                         :pymusicdl:
+I'm sick of manually downloading songs to keep my local collection in sync
+with my cloud collections. I've thought a bit about how to solve this and while
+there's no simple way I've thought of a few ways that can handle most of my
+common use cases.
+
+The gist starts with looking for favorited, starred, etc... tracks on various
+listening accounts and downloading them from youtube; I'm starting with youtube
+but maybe I'll add more down the line. I'll store every track that I download so
+I have a history and no duplicated (I wonder if it's a good idea to store audio
+in a db).
+
+My next down the line goal would be to run this as a server, either as a webapp
+or a process that accepts connections from a port so I can accept one off requests
+to download a song in case there's no source for me to download it from, say you heard
+it on a radio station or a friend told you the name, etc...
+
+That's basically all that I want out of this.
+
+** INACTIVE Support one time adding a song to download
+:LOGBOOK:
+- State "INACTIVE"   from "TODO"       [2017-09-23 Sa 19:32]
+:END:
+So the beauty of the app is the automatic sync so you're music library is always up to date
+and available without any work from you. But I can definitely imagine a use case where someone would
+want to be able to download a single song so why not support that. it shouldn't be too difficult anyway.
+*** TODO Support an api call or socket connection to download a song
+This goes hand in hand with the 'one time download' task so I may make this a subheading
+idea.
+** TODO Support cloud storage for storing music
+Dropbox, google drive, box, etc... whatever but I'd probably start with dropbox or google drive.
+This is the next obvious step into making this a webapp but this would definitely
+be useful for the desktop version, too.
+** IN-PROGRESS Add Support for music streaming services [3/5]
+:LOGBOOK:
+- State "IN-PROGRESS" from "TODO"       [2017-08-01 Tue 20:20]
+:END:
+The streaming services are where I can find a user's music. I want this to be seamless
+so the idea is that they use the starred feature, liked, etc... on their service
+and I pull those songs down and download them.
+
+1. [X] Youtube
+   Liked Videos
+2. [X] Google Music
+   I can pull a user's 'liked songs' from google music player now.
+3. [ ] Lastfm
+4. [ ] Soundcloud
+5. [X] Spotify
+** Notes on syncing libraries and music providers
+I'm not really sure how to describe this task so I'm going to ramble and hope a better title
+becomes more apparent. What I need to do is load a user's existing library so
+the sync doesn't end up redownloading any of their tracks. Actually, that shouldn't be an issue because I plan on
+adding support for storing copies of songs locally so tracks should never be downloaded more than once even among users;
+like a local music cache. So the real issue is that I need to identify possible new tracks that I
+need to download. Actually, even if a song is available doesn't mean the user has it so I'll need to check the user's
+download path to confirm whether they need a fresh copy; this always applies.
+From that, I should actually check a user's download directory to confirm whether a song needs to be redownloaded.
+So basically we're keeping track of a user's favorite songs across multiple stream libraries and downloading it
+for them.
+
+Okay, brain dump. Given that a user can delete songs whenever they want there's no real smart heuristics we can use to be sure
+that a user's local library is up to date; maybe we could check timestamps or something like that but even then we need to check
+the user's filesystem to confirm that a song must be redownloaded.
+
+
+I think what's throwing me off is that I'm mixing up the concept of a local copy of a user's library and a server library.
+If this is an app that a user downloads and runs then the user library and the server library are really the same thing.
+In that case, I'm trying to avoid downloading songs again from youtube or whatever because there's no server with a copy of
+all the songs. If this were a full webapp, then we'd be trying to minimize downloads from the server which tbh isn't that bad because
+static media like music files can be served from a cdn, s3, etc... and my focus here is really on minimizing downloads from
+the original music source, i.e. deezer, youtube, etc...
+
+Tldr.. I'm stupid and I need to keep in mind what I'm actually building and not confuse that with what I might build... sigh.
+
+With that in mind. I'm going to make this a note and make seperate todo's (inactive for server just fyi) to track the actual task
+because I've really lost sight of it here.
+** IN-PROGRESS Add support for main metadata provider
+:LOGBOOK:
+- State "IN-PROGRESS" from "TODO"       [2017-08-06 Sun 22:13]
+- State "TODO"       from "DONE"       [2017-08-06 Sun 22:13]
+- State "DONE"       from "IN-PROGRESS" [2017-08-06 Sun 22:11] \\
+  Done.
+- State "IN-PROGRESS" from "TODO"       [2017-08-06 Sun 22:11]
+:END:
+
+*** DONE Choose main metadata provider
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2017-08-06 Sun 22:13]
+:END:
+Before I store a user's songs and download them, I need to decide on a central song metadata
+provider because a user could be marking songs in multiple places, including the same song,
+leading to duplicates and stuff like that. I really just need consistency.
+
+I have found two strong options:
+
+1. spotify
+2. discogs
+
+Both seem really strong but I went with spotify for the first iteration because it's more well known
+and more up to data. In the worst case, I can use both of these as long as I record where I pulled the
+metadata from (in that case I could support multiple metadata providers but that's not my
+goal here, this is really a nuisance anyway).
+*** TODO Implement support for metedata provider
+:LOGBOOK:
+- State "TODO"       from              [2017-08-06 Sun 22:13]
+:END:
+** User decorator to check if user is logged into google music player
+I don't think this is necessary since we log the user in immediately to get a
+working client but it wouldn't hurt to add as a precaution in case something fails,
+which it inevitably will.
+** TODO Move updated_at and created_at fields into common base class model
+:LOGBOOK:
+- State "TODO"       from              [2017-09-23 Sa 21:19]
+:END:
+These are in every table so they really should be refactored into a common base class.
+Because they're everywhere I think it makes sense to put them in the BaseModel class.
+** TODO Move common account fields into a common base class
+:LOGBOOK:
+- State "TODO"       from              [2017-09-23 Sa 21:19]
+:END:
+I'm thinking access_token, refresh_token, etc... fields that will be in most of the
+third party account fields.
+** TODO Standardize the song info
+:LOGBOOK:
+- State "TODO"       from "DONE"       [2017-09-23 Sa 21:19]
+:END:
+I think I'm tracking this elsewhere but basically I need to standardize song info so I don't end up with dupes.
+The way to do this is to choose a music api service or db that offers metadata info and use that as
+my source of song metadata before saving.
+** TODO Add config parser for config stuff and move all configs into config file
+:LOGBOOK:
+- State "TODO"       from              [2017-09-23 Sa 21:19]
+:END:
+** TODO Move app credentials from hard coded in source code to anywhere else
+:LOGBOOK:
+- State "TODO"       from              [2017-09-23 Sa 21:19]
+:END:
+It might actually make sense to remove these but I'm not sure how to handle this yet.
+My working example is spotify. For the user to authenticate my app I need them to authorize
+my url which needs the app needs my client info. Idk.. I'll just focus on moving this out
+of source code for now.
+** TODO Support passing in a username/password as cli args
+:LOGBOOK:
+- State "TODO"       from              [2017-09-23 Sa 21:20]
+:END:
+** TODO Add support for choosing playlist to sync
+:LOGBOOK:
+- State "TODO"       from              [2017-09-23 Sa 21:20]
+:END:
+=======
+I don't think I need this but I could add support for configurable playlists to download so you could
+download songs from wherever instead of just the provider's version of 'liked, favorited, etc...'
+** Weird youtube-dl error
+I don't know what caused this but basically I couldn't download anything with youtube-dl.
+I saw this issue on my macbook and my thinkpad so it shouldn't be something computer specific.
+I thought it might've been caused by a youtube-dl change but I never upgraded my youtube-dl
+on my thinkpad and it just started working again. I tried upgrading to the latest on my mac
+and it continue to fail so idk what's going on. To be clear, there's two versions of youtube-dl I'm
+talking about now, the python library used by this program and the youtube-dl app. On both of my computers
+both were failing and then they just started working again on my laptop. I was having some random wifi issues
+and did some disagnostics on that so it's possible a kernel upgrade, hardware drivers upgrades, rebooting the router,
+etc... one of many things fixed it but I'm really not sure. I wanna say it wasn't the router because it was
+still failing on my macbook after that but who knows.
+
+I'm watching the downloads on my thinkpad while I write this and the download speeds are pretty low, between 2 and 4mb.
+I definitely think this is more a thinkpad issue but it's still a bit depressing to see. My speed tests show much higher
+so maybe it's just because these files are so small the average speed is getting weighted down. Who knows.
+** Acousticbrainz
+
+This project is related to acoustid and they may even share some tech and/or data but it appears they have
+different goals. It would be interesting to explore what kind of acoustic properties they analyzing and storing.
+
+https://acousticbrainz.org/faq
+https://acousticbrainz.org/
+** TODO Support uploading fingerprinted song data
+It's helpful to the acoustic people and shouldn't be difficult to add
+** TODO Fix prompting for song metadata every time for youtube music videos
+If a song isn't identified by acoustic then right now the user is prompted for the metadata
+every time, even if they're already id'd the song and it's currently download. This is terrible
+and must be fixed.
